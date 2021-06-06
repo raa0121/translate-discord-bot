@@ -11,6 +11,7 @@ go 1.16 later
 ```
 
 ### Environment
+set your .env
 ```
 GOOGLE_APPLICATION_CREDENTIALS=<path/to/json>
 DISCORD_BOT_TOKEN=<bot_token>

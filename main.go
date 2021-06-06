@@ -11,16 +11,20 @@ import (
 
 	"cloud.google.com/go/translate"
 	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 	"golang.org/x/text/language"
 )
 
 var (
 	ctx context.Context
 	client *translate.Client
-	err error
 )
 
 func init() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal(err)
+	}
 	ctx = context.Background()
 	client, err = translate.NewClient(ctx)
 	defer client.Close()
@@ -34,12 +38,12 @@ func main() {
 	if botToken == "" {
 		log.Fatal("DISCORD_BOT_TOKEN is not set.")
 	}
+
 	dg, err := discordgo.New("Bot " + botToken)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer dg.Close()
-
 	dg.AddHandler(messageCreate)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 	err = dg.Open()
@@ -56,16 +60,39 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	if strings.HasPrefix(m.Content, "!tr") {
-		slice := strings.Split(m.Content, " ")
-		mes := strings.Join(slice[1:], " ")
-		lang, err := DetectLanguage(mes)
-		if err != nil {
-			return
-		}
-		trans := Translate(mes, lang)
-		s.ChannelMessageSend(m.ChannelID, trans)
+	roles, err := s.GuildRoles(m.GuildID)
+	if err != nil {
+		return
 	}
+	var detectedRole *discordgo.Role
+	for _, role := range roles {
+		if role.Name == "translation" {
+			detectedRole = role
+			break
+		}
+	}
+
+	channel, err := s.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	isSendable := false
+	for _, permission := range channel.PermissionOverwrites {
+		if permission.ID == detectedRole.ID && permission.Type == discordgo.PermissionOverwriteTypeRole && permission.Allow == 2048 {
+			isSendable = true
+			break
+		}
+	}
+	if isSendable == false {
+		return
+	}
+	mes := m.Content
+	lang, err := DetectLanguage(mes)
+	if err != nil {
+		return
+	}
+	trans := Translate(mes, lang)
+	s.ChannelMessageSend(m.ChannelID, trans)
 }
 
 func DetectLanguage(mes string) (language.Tag, error) {
@@ -73,7 +100,7 @@ func DetectLanguage(mes string) (language.Tag, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	if len(lang) == 0 || len(lang[0]) == 0 {
 		return language.English, fmt.Errorf("DetectLanguage return value empty")
 	}
