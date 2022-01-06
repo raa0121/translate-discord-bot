@@ -22,6 +22,9 @@ DISCORD_BOT_TOKEN=<bot_token>
 go install github.com/raa0121/translate-discord-bot@latest
 ```
 
+If you invited this bot to your Discord server, You should add permission
+to bot's role on a channel that always translation.
+
 ## License:
 
 The MIT License (MIT)

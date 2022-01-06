@@ -66,7 +66,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	var detectedRole *discordgo.Role
 	for _, role := range roles {
-		if role.Name == "translation" {
+		if role.Name == "translation" || role.Name == "translation bot" {
 			detectedRole = role
 			break
 		}
@@ -78,7 +78,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	isSendable := false
 	for _, permission := range channel.PermissionOverwrites {
-		if permission.ID == detectedRole.ID && permission.Type == discordgo.PermissionOverwriteTypeRole && permission.Allow == 2048 {
+		if permission.ID == detectedRole.ID &&
+		permission.Type == discordgo.PermissionOverwriteTypeRole &&
+		(permission.Allow == 2048 || permission.Allow == 3072) {
 			isSendable = true
 			break
 		}
@@ -92,7 +94,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	trans := Translate(mes, lang)
-	s.ChannelMessageSend(m.ChannelID, trans)
+	s.ChannelMessageSend(m.ChannelID, m.Author.Username + ": " + trans)
 }
 
 func DetectLanguage(mes string) (language.Tag, error) {
