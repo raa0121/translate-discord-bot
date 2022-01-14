@@ -13,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	"golang.org/x/text/language"
+	"mvdan.cc/xurls/v2"
 )
 
 var (
@@ -94,7 +95,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	trans := Translate(mes, lang)
-	s.ChannelMessageSend(m.ChannelID, m.Author.Username + ": " + trans)
+	result := AddBracketOnUrl(trans)
+	s.ChannelMessageSend(m.ChannelID, m.Author.Username + ": " + result)
 }
 
 func DetectLanguage(mes string) (language.Tag, error) {
@@ -128,4 +130,12 @@ func Translate(mes string, lang language.Tag) string {
 		trans = append(trans, r.Text)
 	}
 	return strings.Join(trans, "\n")
+}
+
+func AddBracketOnUrl(mes string) string {
+	reg := xurls.Relaxed()
+	fixedMsg := reg.ReplaceAllFunc([]byte(mes), func(url []byte) []byte {
+		return append(append([]byte{'<'}, url...), byte('>'))
+	})
+	return string(fixedMsg)
 }
